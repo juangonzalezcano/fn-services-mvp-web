@@ -5,15 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ced22fdc-5248-481b-b0d2-87556d23dd15" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/deploy.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/auth.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/authOptions.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/AuthContext.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/providers.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/api/auth/[...nextauth]/route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/auth/[...nextauth]/route.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/api/meal-plan/route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/meal-plan/route.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/components/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/App.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/middleware.ts" beforeDir="false" afterPath="$PROJECT_DIR$/middleware.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/auth.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/auth.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/authOptions.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/middleware.ts" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -23,8 +24,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="TypeScript JSX File" />
         <option value="TypeScript File" />
+        <option value="TypeScript JSX File" />
       </list>
     </option>
   </component>
@@ -52,7 +53,7 @@
     "nodejs_package_manager_path": "npm",
     "npm.build.executor": "Run",
     "npm.deploy.executor": "Run",
-    "npm.dev.executor": "Debug",
+    "npm.dev.executor": "Run",
     "npm.pre-deploy.executor": "Run",
     "settings.editor.selected.configurable": "preferences.pluginManager",
     "ts.external.directory.path": "/Users/juan.gonzalez/WebstormProjects/fn-services-mvp-web/node_modules/typescript/lib",
@@ -67,7 +68,7 @@
       <recent name="$PROJECT_DIR$/app/api" />
     </key>
   </component>
-  <component name="RunManager" selected="Shell Script.deploy.sh">
+  <component name="RunManager" selected="npm.dev">
     <configuration name="deploy.sh" type="ShConfigurationType" temporary="true">
       <option name="SCRIPT_TEXT" value="" />
       <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
@@ -125,11 +126,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="npm.dev" />
         <item itemvalue="Shell Script.deploy.sh" />
         <item itemvalue="npm.pre-deploy" />
         <item itemvalue="npm.deploy" />
         <item itemvalue="npm.build" />
-        <item itemvalue="npm.dev" />
       </list>
     </recent_temporary>
   </component>
@@ -150,7 +151,7 @@
       <updated>1718893334294</updated>
       <workItem from="1718893335355" duration="582000" />
       <workItem from="1718893930477" duration="10987000" />
-      <workItem from="1718918844109" duration="2265000" />
+      <workItem from="1718918844109" duration="6810000" />
     </task>
     <servers />
   </component>
@@ -162,12 +163,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/app/api/meal-plan/route.ts</url>
-          <line>29</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/app/api/meal-plan/route.ts</url>
-          <line>49</line>
+          <line>53</line>
           <option name="timeStamp" value="4" />
         </line-breakpoint>
       </breakpoints>

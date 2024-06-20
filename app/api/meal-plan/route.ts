@@ -1,7 +1,9 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { getSessionFromNextRequest } from '@/lib/auth';
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import {getServerSession} from "next-auth";
 
 interface UserData {
     gender: string;
@@ -26,7 +28,9 @@ const predefinedUsers: Record<string, UserData> = {
 
 export async function GET(req: NextRequest) {
     try {
-        const session = await getSessionFromNextRequest(req);
+        // @ts-ignore
+        const session = await getServerSession(req, res, authOptions)
+
         if (!session) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
