@@ -1,27 +1,10 @@
-import { withAuth } from 'next-auth/middleware';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+// src/middleware.ts
+import { withAuth } from "next-auth/middleware";
 
-export default withAuth(
-    function middleware(req: NextRequest) {
-        const url = req.nextUrl.clone();
-        const token = req.cookies.get('next-auth.session-token') || req.cookies.get('__Secure-next-auth.session-token');
-
-        // If there is no token, redirect to the sign-in page
-        if (!token) {
-            const signInUrl = new URL('/auth/signin', req.url);
-            signInUrl.searchParams.set('callbackUrl', req.url);
-            return NextResponse.redirect(signInUrl);
-        }
-        return NextResponse.next();
+export default withAuth({
+    pages: {
+        signIn: "/auth/signin", // Redirect to this page if not authenticated
     },
-    {
-        callbacks: {
-            authorized: ({ token }) => !!token,
-        },
-    }
-);
+});
 
-export const config = {
-    matcher: ['/((?!api|_next/static|favicon.ico).*)'],
-};
+export const config = { matcher: ["/api/meal-plan"] }; // Adjust the matcher to include all routes you want to protect

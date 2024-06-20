@@ -1,4 +1,4 @@
-// @ts-nocheck
+//@ts-nocheck
 'use client'
 import React, { useState, useEffect, useRef } from 'react';
 import RecipeModal from './RecipeModal';
@@ -7,37 +7,88 @@ import ResponseSummary from "./ResponseSummary";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPencilAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
 
+
+interface Recipe {
+    mealType?: string;
+    day?: string;
+    contentful_id: string;
+    name: string;
+    calories: number;
+    protein: number;
+    isSnack?: boolean;
+}
+
+interface MealPlan {
+    [day: string]: {
+        [mealType: string]: Recipe;
+    };
+}
+
+interface Changes {
+    [day: string]: {
+        [mealType: string]: Recipe;
+    };
+}
+
+
+interface UserData {
+    gender: string;
+    height: number;
+    age: number;
+    calorie_target: number;
+    protein_min: number;
+    protein_max: number;
+}
+
+interface Responses {
+    hidden: object;
+    calculated: object;
+    answers: object[];
+    questions: object[];
+    qna: object[];
+}
+
+interface AverageDailyValues {
+    calories: number;
+    protein: number;
+}
+
+
 const App = () => {
-    const [mealPlan, setMealPlan] = useState({});
-    const [changes, setChanges] = useState({});
-    const [patientUserId, setPatientUserId] = useState("");
-    const [selectedRecipe, setSelectedRecipe] = useState(null);
-    const [modalOpen, setModalOpen] = useState(false);
-    const [recipes, setRecipes] = useState([]);
-    const [showDropdown, setShowDropdown] = useState({ day: '', meal: '' });
-    const [searchQuery, setSearchQuery] = useState("");
-    const [editRecipe, setEditRecipe] = useState(null);
-    const [editForm, setEditForm] = useState({
+    const [mealPlan, setMealPlan] = useState<MealPlan>({});
+    const [changes, setChanges] = useState<Changes>({});
+    const [patientUserId, setPatientUserId] = useState<string>("");
+    const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+    const [modalOpen, setModalOpen] = useState<boolean>(false);
+    const [recipes, setRecipes] = useState<Recipe[]>([]);
+    const [showDropdown, setShowDropdown] = useState<{ day: string; meal: string }>({ day: '', meal: '' });
+    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [editRecipe, setEditRecipe] = useState<Recipe | null>(null);
+    const [editForm, setEditForm] = useState<{
+        name: string;
+        calories: number;
+        protein: number;
+    }>({
         name: "",
         calories: 0,
         protein: 0
     });
-    const [isLoading, setIsLoading] = useState(true);
-    const [responses, setResponses] = useState({});
-    const [userData, setUserData] = useState(null);
-    const [isSaving, setIsSaving] = useState(false);
-    const [averageDailyValues, setAverageDailyValues] = useState({ calories: 0, protein: 0 });
-    const [duplicateDays, setDuplicateDays] = useState([]);
-    const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-    const [isResetting, setIsResetting] = useState(false);
-    const [cookingDays, setCookingDays] = useState([]);
-    const [shoppingDays, setShoppingDays] = useState([]);
-    const [eatingOutDays, setEatingOutDays] = useState([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [responses, setResponses] = useState<Responses | {}>({});
+    const [userData, setUserData] = useState<UserData | null>(null);
+    const [isSaving, setIsSaving] = useState<boolean>(false);
+    const [averageDailyValues, setAverageDailyValues] = useState<AverageDailyValues>({ calories: 0, protein: 0 });
+    const [duplicateDays, setDuplicateDays] = useState<string[]>([]);
+    const [resetConfirmOpen, setResetConfirmOpen] = useState<boolean>(false);
+    const [isResetting, setIsResetting] = useState<boolean>(false);
+    const [cookingDays, setCookingDays] = useState<string[]>([]);
+    const [shoppingDays, setShoppingDays] = useState<string[]>([]);
+    const [eatingOutDays, setEatingOutDays] = useState<string[]>([]);
 
-    const dropdownRef = useRef(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const loadInitialData = async (userId) => {
+        const loadInitialData = async (userId:string) => {
             try {
                 await Promise.all([
                     fetchData(userId),
@@ -63,8 +114,8 @@ const App = () => {
     }, []);
 
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setShowDropdown({ day: '', meal: '' });
             }
         };
@@ -75,9 +126,9 @@ const App = () => {
         };
     }, []);
 
-    const fetchData = async (userId) => {
+    const fetchData = async (userId: string) => {
         try {
-            const response = await fetch(`/api/?userId=${userId}&action=meal_plan`);
+            const response = await fetch(`/api/meal-plan/?userId=${userId}&action=meal_plan`);
             const data = await response.json();
 
             if (data && data.weeklyMealPlan) {
@@ -102,19 +153,19 @@ const App = () => {
                 console.log(data.keyDays.cooking);
                 console.log(data.keyDays.shopping);
                 console.log(data.keyDays.eat_out);
-
             }
             setIsLoading(false);
         } catch (error) {
-            console.error("Failed to fetch meal plan data", error);
+            handleError(error);
             setIsLoading(false);
         }
     };
 
-    const normalizeData = (data) => {
+    const normalizeData = (data: MealPlan): MealPlan => {
         Object.keys(data).forEach(day => {
             Object.keys(data[day]).forEach(mealType => {
                 const meal = data[day][mealType];
+
                 if (!meal.contentful_id && meal.contentfulId) {
                     meal.contentful_id = meal.contentfulId;
                 }
@@ -123,43 +174,33 @@ const App = () => {
         return data;
     };
 
-    const fetchRecipes = async (userId) => {
+    const fetchRecipes = async (userId: string) => {
         try {
             const defaultRecipesResp = await fetch('/api/recipes/');
             const defaultRecipes = await defaultRecipesResp.json();
             const customRecipesResp = await fetch(`/api/recipes?table=recipes_custom&user_id=${userId}`);
             const customRecipes = await customRecipesResp.json();
 
-            // console.log(`customRecipes: ${JSON.stringify(customRecipes)}`)
-            // console.log(`defaultRecipes: ${JSON.stringify(defaultRecipes)}`)
-
-
             const defaultSnacksResp = await fetch('/api/snacks/');
             const defaultSnacks = await defaultSnacksResp.json();
 
-            const filteredSnacks = defaultSnacks.filter(snack => !snack.cravings_kit);
+            const filteredSnacks = defaultSnacks.filter((snack: Recipe) => !snack.cravings_kit);
 
-            const combinedRecipes = [
+            const combinedRecipes: Recipe[] = [
                 ...defaultRecipes,
-                // ...customRecipes.map(recipe => ({
-                //     ...recipe,
-                //     isCustom: true
-                // })),
                 ...filteredSnacks.map(snack => ({
                     ...snack,
                     isSnack: true
                 }))
             ];
 
-
             setRecipes(combinedRecipes);
-
         } catch (error) {
-            console.error("Failed to fetch recipes", error);
+            handleError(error);
         }
     };
 
-    const fetchResponses = async (userId) => {
+    const fetchResponses = async (userId: string) => {
         try {
             const response = await fetch(`/api/responses?user_id=${userId}`);
             const data = await response.json();
@@ -184,16 +225,23 @@ const App = () => {
                 throw new Error(data.error || 'Failed to fetch responses');
             }
         } catch (error) {
-            console.error("Failed to fetch responses", error);
+            handleError(error);
         }
     };
 
-    const handleViewClick = (recipe) => {
+    const handleError = (error: unknown) => {
+        if (error instanceof Error) {
+            console.error('Failed to fetch data:', error.message);
+        } else {
+            console.error('An unknown error occurred:', error);
+        }
+    };
+    const handleViewClick = (recipe:Recipe) => {
         setSelectedRecipe(recipe);
         setModalOpen(true);
     };
 
-    const handleSelectRecipe = (contentfulId, day, meal) => {
+    const handleSelectRecipe = (contentfulId: string, day: string, meal: string) => {
         const recipe = recipes.find(r => r.contentful_id === contentfulId);
         if (recipe) {
             handleRecipeChange(day, meal, recipe);
@@ -201,29 +249,31 @@ const App = () => {
         }
     };
 
-    const handleRecipeChange = (day, mealType, newRecipe) => {
+    const handleRecipeChange = (day: string, mealType: string, newRecipe: Recipe) => {
         setChanges(prevChanges => {
             const updatedDayChanges = {
                 ...prevChanges[day],
                 [mealType]: newRecipe
             };
 
-            const newDayMeals = { ...mealPlan[day], ...updatedDayChanges };
-            const newTotals = calculateTotals(newDayMeals);
-
             const updatedChanges = {
                 ...prevChanges,
-                [day]: updatedDayChanges,
-                totals: {
-                    ...prevChanges.totals,
-                    [day]: newTotals
-                }
+                [day]: updatedDayChanges
             };
 
             calculateAverageDailyValues(mealPlan, updatedChanges);
 
             return updatedChanges;
         });
+
+        const newDayMeals = { ...mealPlan[day], [mealType]: newRecipe };
+        const newTotals = calculateTotals(newDayMeals);
+
+        // Update totals separately if needed
+        // setTotals(prevTotals => ({
+        //   ...prevTotals,
+        //   [day]: newTotals
+        // }));
     };
 
     const handleClose = () => {
@@ -236,7 +286,7 @@ const App = () => {
         });
     };
 
-    const handleDropdown = (day, meal) => {
+    const handleDropdown = (day: string, meal: string) => {
         setShowDropdown(prev => {
             if (prev.day === day && prev.meal === meal) {
                 return { day: '', meal: '' };
@@ -246,12 +296,12 @@ const App = () => {
         });
     };
 
-    const handleEditClick = (recipe, day, mealType) => {
-        setEditRecipe({ day, mealType, name: "", calories: 0, protein: 0 });
+    const handleEditClick = (recipe: Recipe, day: string, mealType: string) => {
+        setEditRecipe({ ...recipe, day, mealType });
         setModalOpen(true);
     };
 
-    const handleUndo = (day, mealType) => {
+    const handleUndo = (day: string, mealType: string) => {
         setChanges(prevChanges => {
             const updatedChanges = { ...prevChanges };
             if (updatedChanges[day] && updatedChanges[day][mealType]) {
@@ -270,7 +320,7 @@ const App = () => {
         setShowDropdown({ day: '', meal: '' });
     };
 
-    const handleEditSubmit = async (e, recipe) => {
+    const handleEditSubmit = async (e: React.FormEvent, recipe: Recipe) => {
         e.preventDefault();
 
         const isNewRecipe = !recipe.contentful_id;
@@ -310,16 +360,16 @@ const App = () => {
             } else {
                 throw new Error(data.error || 'Failed to save the recipe');
             }
-        } catch (error) {
+        } catch (error ) {
             console.error('Error saving recipe:', error.message || error);
         }
     };
 
-    const getMealDisplayData = (day, mealType) => {
+    const getMealDisplayData = (day: string, mealType: string) => {
         return changes[day] && changes[day][mealType] ? changes[day][mealType] : mealPlan[day][mealType];
     };
 
-    const calculateTotals = (meals) => {
+    const calculateTotals = (meals: { [key: string]: Recipe }): { calories: number; protein: number } => {
         const totals = { calories: 0, protein: 0 };
         ['breakfast', 'lunch', 'dinner', 'snack'].forEach(mealType => {
             if (meals[mealType]) {
@@ -330,7 +380,7 @@ const App = () => {
         return totals;
     };
 
-    const calculateAverageDailyValues = (mealPlan, changes) => {
+    const calculateAverageDailyValues = (mealPlan: MealPlan, changes: Changes) => {
         const days = Object.keys(mealPlan).filter(day => day !== 'Totals');
         let totalCalories = 0;
         let totalProtein = 0;
@@ -363,7 +413,7 @@ const App = () => {
         // Exclude the 'totals' key
         delete combinedPlan['totals'];
 
-        const duplicateDays = [];
+        const duplicateDays: string[] = [];
         const invalidDays = [];
 
         for (const day in combinedPlan) {
@@ -475,7 +525,7 @@ const App = () => {
 
     if (isLoading) return <p>Loading...</p>;
 
-    const isDuplicateMeal = (day, mealType, meal) => {
+    const isDuplicateMeal = (day: string, mealType: string, meal: Recipe) => {
         const key = `${day}-${meal.contentful_id}`;
         const seen = new Set();
 

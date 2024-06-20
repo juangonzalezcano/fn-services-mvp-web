@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "pre-deploy": "npm run build",
+    "deploy": "gcloud run deploy"
   },
   "dependencies": {
     "@firebase/firestore": "^4.6.3",

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { getSessionFromNextRequest } from '@/lib/auth';
 
 interface UserData {
     gender: string;
@@ -25,6 +26,11 @@ const predefinedUsers: Record<string, UserData> = {
 
 export async function GET(req: NextRequest) {
     try {
+        const session = await getSessionFromNextRequest(req);
+        if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const url = new URL(req.url);
         const requestedUserID = url.searchParams.get('userId');
         const action = url.searchParams.get('action');
