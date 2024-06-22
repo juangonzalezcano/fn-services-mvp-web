@@ -1,124 +1,102 @@
-
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase/clientApp';
 import { doc, getDoc } from 'firebase/firestore';
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import {getServerSession} from "next-auth";
+import {createClient} from "contentful";
+import {auth} from "@/auth";
 
-interface UserData {
-    gender: string;
-    height: number;
-    age: number;
-    calorie_target: number;
-    protein_min: number;
-    protein_max: number;
-}
 
-const predefinedUsers: Record<string, UserData> = {
-    'clvydo7zx011gnq01e41hylre': {
-        gender: 'FEMALE',
-        height: 163,
-        age: 33,
-        calorie_target: 1174,
-        protein_min: 84,
-        protein_max: 112,
-    },
-    // Add other predefined users here
-};
+const contentfulClient = createClient({
+    space: process.env.CONTENTFUL_SPACE_ID || "1p96mcpzbbp4",
+    accessToken: process.env.CONTENTFUL_TOKEN || "j7OkwqIZoBp9fqP9DoTbGA6BLCcD_R_JWfQ9A2qrY6g",
+});
 
-export async function GET(req: NextRequest) {
-    try {
-        // @ts-ignore
-        const session = await getServerSession(req, res, authOptions)
+export const GET = auth(async function GET(req) {
 
-        if (!session) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+    if (req.auth)
 
-        const url = new URL(req.url);
-        const requestedUserID = url.searchParams.get('userId');
-        const action = url.searchParams.get('action');
+        try {
+            const url = new URL(req.url);
+            const requestedUserID = url.searchParams.get('userId');
+            const action = url.searchParams.get('action');
 
-        if (!requestedUserID) {
-            return NextResponse.json({ error: 'Missing parameter' }, { status: 400 });
-        }
+            if (!requestedUserID) {
+                return NextResponse.json({ error: 'Missing parameter' }, { status: 400 });
+            }
 
-        if (action === 'meal_plan') {
-            const userDoc = await getDoc(doc(db, 'plans', requestedUserID));
-            const planData = userDoc.exists() ? userDoc.data() : null;
+            const userDocRef = doc(db, 'plans', requestedUserID);
+            const userDoc = await getDoc(userDocRef);
 
+            if (!userDoc.exists()) {
+                return NextResponse.json({ error: 'Not found' }, { status: 404 });
+            }
+
+            const planData = userDoc.data();
             if (!planData) {
-                return NextResponse.json({ error: 'Not found' }, { status: 404 });
+                return NextResponse.json({ error: 'No plan data found' }, { status: 404 });
             }
 
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-            const completeMealPlan: Record<string, any> = {};
+            if (action === 'meal_plan') {
+                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                const completeMealPlan: Record<string, any> = {};
 
-            for (const day of days) {
-                if (planData[`plan_${day}`]) {
-                    const dayPlanJson = JSON.parse(planData[`plan_${day}`]);
-                    const dayPlan = dayPlanJson.weeklyMealPlan[Object.keys(dayPlanJson.weeklyMealPlan)[0]];
+                for (const day of days) {
+                    const dayPlan = planData[`plan_${day}`];
+                    if (dayPlan) {
+                        for (const mealType in dayPlan) {
+                            const meal = dayPlan[mealType];
+                            let recipeDetails;
 
-                    for (const mealType in dayPlan) {
-                        const meal = dayPlan[mealType];
-                        let recipeDetails;
+                            if(mealType !== 'snack') {
 
-                        if (mealType === 'snack') {
-                            const snackDoc = await getDoc(doc(db, 'snacks', meal.contentfulId));
-                            recipeDetails = snackDoc.exists() ? snackDoc.data() : null;
-                        } else if (meal.contentfulId && meal.contentfulId.startsWith('CUSTOM_RECIPE')) {
-                            const proxyId = meal.contentfulId;
-                            const customRecipeDoc = await getDoc(doc(db, 'recipes_custom', proxyId));
-                            recipeDetails = customRecipeDoc.exists() ? customRecipeDoc.data() : null;
-                        } else if (meal.contentfulId) {
-                            const recipeDoc = await getDoc(doc(db, 'recipes', meal.contentfulId));
-                            recipeDetails = recipeDoc.exists() ? recipeDoc.data() : null;
+                                try {
+                                    const recipe = await contentfulClient.getEntry(meal.contentfulId);
+                                    console.log(recipe.fields)
+                                    recipeDetails = recipe.fields;
+                                } catch (error) {
+                                    console.error(`Error fetching snack details from Contentful for meal ${meal.contentfulId}: ${error}`);
+                                    continue;
+                                }
+
+                            }
+
+                                // else if (meal.contentfulId && meal.contentfulId.startsWith('CUSTOM_RECIPE')) {
+                                //      console.log(`custom recipes Not supported yet: ${meal.contentfulId}`)
+                                //     const proxyId = meal.contentfulId;
+                                //     const customRecipeDoc = await getDoc(doc(db, 'recipes_custom', proxyId));
+                                //     recipeDetails = customRecipeDoc.exists() ? customRecipeDoc.data() : null;
+                            // }
+
+                            else if (mealType === 'snack') {
+                                try {
+                                    const recipeDoc = await contentfulClient.getEntry(meal.contentfulId);
+                                    recipeDetails = recipeDoc.fields;
+                                } catch (error) {
+                                    console.error(`Error fetching recipe details from Contentful for meal ${meal.contentfulId}: ${error}`);
+                                    continue;
+                                }
+                            }
+
+                            if (recipeDetails) {
+                                dayPlan[mealType] = { ...meal, ...recipeDetails };
+                            }
                         }
 
-                        if (recipeDetails) {
-                            dayPlan[mealType] = { ...meal, ...recipeDetails };
-                        }
+                        completeMealPlan[day] = dayPlan;
                     }
-
-                    completeMealPlan[day] = dayPlan;
                 }
-            }
 
-            let userData: UserData | null = predefinedUsers[requestedUserID] || null;
-
-            if (!userData) {
-                const userDoc = await getDoc(doc(db, 'plans', requestedUserID));
-                if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    userData = {
-                        gender: data.gender,
-                        height: data.height,
-                        age: data.age,
-                        calorie_target: data.calorie_target,
-                        protein_min: data.protein_min,
-                        protein_max: data.protein_max,
-                    };
-                }
+                return NextResponse.json({ weeklyMealPlan: completeMealPlan, userData: planData});
+            } else {
+                return NextResponse.json(planData);
             }
-
-            if (!userData) {
-                return NextResponse.json({ error: 'User data not found' }, { status: 404 });
-            }
-
-            return NextResponse.json({
-                weeklyMealPlan: completeMealPlan,
-                userData,
-            });
-        } else {
-            const userDoc = await getDoc(doc(db, 'plans', requestedUserID));
-            const data = userDoc.exists() ? userDoc.data() : null;
-            if (!data) {
-                return NextResponse.json({ error: 'Not found' }, { status: 404 });
-            }
-            return NextResponse.json(data);
+        } catch (error) {
+            console.error(`Server error: ${error}`);
+            return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
         }
-    } catch (error) {
-        console.error(`Server error: ${error}`);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+
+    else {
+        return NextResponse.json({ message: "Not authenticated" }, { status: 401 })
+
     }
-}
+})
+

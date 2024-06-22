@@ -1,7 +1,4 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-
-const firebaseConfig = {
+const config = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -10,7 +7,14 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// When deployed, there are quotes that need to be stripped
+Object.keys(config).forEach((key) => {
+    // @ts-ignore
+    const configValue = config[key] + "";
+    if (configValue.charAt(0) === '"') {
+        // @ts-ignore
+        config[key] = configValue.substring(1, configValue.length - 1);
+    }
+});
 
-export { db };
+export const firebaseConfig = config;
