@@ -54,6 +54,7 @@ interface Changes {
     };
 }
 
+//These tokens are OK to be public so have the fallbacks here, they're used to fetch public data from Contentful and can't retrieve any unpublished or private data
 const contentfulClient = createClient({
     space: process.env.CONTENTFUL_SPACE_ID || '1p96mcpzbbp4',
     accessToken: process.env.CONTENTFUL_TOKEN || 'j7OkwqIZoBp9fqP9DoTbGA6BLCcD_R_JWfQ9A2qrY6g',
