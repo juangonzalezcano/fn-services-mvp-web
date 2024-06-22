@@ -1,15 +1,22 @@
-// @ts-nocheck
-
 import React from 'react';
 
-const ResponseSummary = ({ responses }) => {
-    const qna = Array.isArray(responses.qna) ? responses.qna : JSON.parse(responses.qna || '[]');
 
-    const half = Math.ceil(qna.length / 2);
-    const firstHalf = qna.slice(0, half);
-    const secondHalf = qna.slice(half);
+interface Responses{
+    question: string;
+    answer:   string;
+}
 
-    const highlightQuestion = (question, answer) => {
+interface ResponseSummaryProps {
+    responses: Responses[];
+}
+
+const ResponseSummary: React.FC<ResponseSummaryProps> = ({ responses }) => {
+
+    const half = Math.ceil(responses.length / 2);
+    const firstHalf = responses.slice(0, half);
+    const secondHalf = responses.slice(half);
+
+    const highlightQuestion = (question: string, answer: string) => {
         const lowerAnswer = String(answer).toLowerCase();
 
         return (
@@ -18,7 +25,7 @@ const ResponseSummary = ({ responses }) => {
         );
     };
 
-    const renderQnA = (items) => {
+    const renderQnA = (items: Responses[]) => {
         return items.map((item, index) => {
             const isHighlighted = highlightQuestion(item.question, item.answer);
             return (
@@ -31,14 +38,14 @@ const ResponseSummary = ({ responses }) => {
     };
 
     return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    {renderQnA(firstHalf)}
-                </div>
-                <div>
-                    {renderQnA(secondHalf)}
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                {renderQnA(firstHalf)}
             </div>
+            <div>
+                {renderQnA(secondHalf)}
+            </div>
+        </div>
     );
 };
 

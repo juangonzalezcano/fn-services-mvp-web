@@ -59,6 +59,19 @@ function EditRecipeModal({ isOpen, editRecipe, editForm, setEditForm, onClose, o
                             className="border border-gray-300 rounded-md p-2 w-full"
                         />
                     </div>
+                    <div>
+                        <label htmlFor="recipeUrl"
+                               className="block text-sm font-medium text-gray-700 mb-1">URL</label>
+                        <input
+                            type="url"
+                            id="recipeUrl"
+                            value={editForm.url}
+                            onChange={e => setEditForm({...editForm, url: e.target.value})}
+                            placeholder="URL"
+                            required
+                            className="border border-gray-300 rounded-md p-2 w-full"
+                        />
+                    </div>
                     <div className="flex space-x-4">
                         <button type="submit"
                                 className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"

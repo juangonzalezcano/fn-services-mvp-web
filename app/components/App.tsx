@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import RecipeModal from './RecipeModal';
 import EditRecipeModal from './EditRecipeModal';
@@ -17,7 +16,15 @@ interface Recipe {
     name: string;
     calories: number;
     protein: number;
-    isSnack?: boolean;
+}
+
+interface Snack {
+    title?: string;
+    cravings_kit?: boolean;
+    contentful_id: string;
+    name: string;
+    calories: number;
+    protein: number;
 }
 
 interface MealPlan {
@@ -42,11 +49,8 @@ interface UserData {
 }
 
 interface Responses {
-    hidden: object;
-    calculated: object;
-    answers: object[];
-    questions: object[];
-    qna: object[];
+    question: string;
+    answer: string;
 }
 
 interface AverageDailyValues {
@@ -54,33 +58,29 @@ interface AverageDailyValues {
     protein: number;
 }
 
-
 function App() {
-
     const [mealPlan, setMealPlan] = useState<MealPlan>({});
+    const [originalMealPlan, setOriginalMealPlan] = useState<MealPlan>({});
     const [changes, setChanges] = useState<Changes>({});
     const [patientUserId, setPatientUserId] = useState<string>("");
     const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
     const [modalOpen, setModalOpen] = useState<boolean>(false);
     const [recipes, setRecipes] = useState<Recipe[]>([]);
-    const [showDropdown, setShowDropdown] = useState<{ day: string; meal: string }>({day: '', meal: ''});
+    const [snacks, setSnacks] = useState<Snack[]>([]);
+    const [showDropdown, setShowDropdown] = useState<{ day: string; meal: string }>({ day: '', meal: '' });
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [editRecipe, setEditRecipe] = useState<Recipe | null>(null);
-    const [editForm, setEditForm] = useState<{
-        name: string;
-        calories: number;
-        protein: number;
-    }>({
+    const [editForm, setEditForm] = useState<{ url?: any; name: string; calories: number; protein: number }>({
         name: "",
         calories: 0,
-        protein: 0
+        protein: 0,
+        url: ""
     });
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [responses, setResponses] = useState<Responses | {}>({});
+    const [responses, setResponses] = useState<Responses[]>([]);
     const [userData, setUserData] = useState<UserData | null>(null);
     const [isSaving, setIsSaving] = useState<boolean>(false);
-    const [averageDailyValues, setAverageDailyValues] = useState<AverageDailyValues>({calories: 0, protein: 0});
-    const [duplicateDays, setDuplicateDays] = useState<string[]>([]);
+    const [averageDailyValues, setAverageDailyValues] = useState<AverageDailyValues>({ calories: 0, protein: 0 });
     const [resetConfirmOpen, setResetConfirmOpen] = useState<boolean>(false);
     const [isResetting, setIsResetting] = useState<boolean>(false);
     const [cookingDays, setCookingDays] = useState<string[]>([]);
@@ -103,8 +103,6 @@ function App() {
             try {
                 await Promise.all([
                     fetchData(userId),
-                    // fetchRecipes(userId),
-                    // fetchResponses(userId)
                 ]);
             } catch (error) {
                 console.error("Error loading initial data:", error);
@@ -127,7 +125,7 @@ function App() {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setShowDropdown({day: '', meal: ''});
+                setShowDropdown({ day: '', meal: '' });
             }
         };
 
@@ -140,93 +138,79 @@ function App() {
     const fetchData = async (userId: string) => {
         try {
             const response = await fetch(`/api/meal-plan/?userId=${userId}&action=meal_plan`, {
-                cache: 'no-cache'
-            });
+                cache: "no-cache"
 
+            });
             const data = await response.json();
 
             if (data && data.weeklyMealPlan) {
+                console.log("Meal plan fetched");
                 setMealPlan(data.weeklyMealPlan);
+                setOriginalMealPlan(data.weeklyMealPlan); // Store the original meal plan
+                calculateAverageDailyValues(data.weeklyMealPlan, {});
             }
 
             if (data && data.userData) {
-                console.log("User data fetched:", data.userData); // Debug statement
+                console.log("User data fetched");
                 setUserData(data.userData);
-            } else {
-                console.log("No user data found."); // Debug statement
+            }
+
+            if (data && data.responses) {
+                console.log("Responses fetched");
+                setResponses(data.responses);
+            }
+
+            if (data && data.cookingDays) {
+                console.log("Cooking days fetched");
+                setCookingDays(data.cookingDays);
+            }
+
+            if (data && data.shoppingDays) {
+                console.log("Shopping days fetched");
+                setShoppingDays(data.shoppingDays);
+            }
+
+            if (data && data.eatingOutDays) {
+                console.log("Eating out days fetched");
+                setEatingOutDays(data.eatingOutDays);
+            }
+
+            try {
+                const recipesResponse = await fetch(`/api/recipes?countryCode=AU&userId=${userId}`, { cache: "no-cache" });
+                const recipesData = await recipesResponse.json();
+
+                if (recipesData.recipes) { // Ensure recipesData has recipes property
+                    console.log("Recipes fetched");
+                    setRecipes(recipesData.recipes); // Use recipes property to set state
+                }
+            } catch (error) {
+                console.error('Error fetching recipes:', error);
+            }
+
+            try {
+                const snacksResponse = await fetch(`/api/snacks?countryCode=AU&userId=${userId}`, { cache: "no-cache" });
+                const snacksData = await snacksResponse.json();
+
+                if (snacksData.snacks) { // Ensure snacksData has snacks property
+                    console.log("Snacks fetched");
+                    setSnacks(snacksData.snacks); // Use snacks property to set state
+                }
+            } catch (error) {
+                console.error('Error fetching snacks:', error);
             }
 
             setIsLoading(false);
+
         } catch (error) {
             console.error('Error fetching data:', error);
             setIsLoading(false);
         }
     };
 
-    const fetchRecipes = async (userId: string) => {
-        try {
-            const defaultRecipesResp = await fetch('/api/recipes/');
-            const defaultRecipes = await defaultRecipesResp.json();
-            const customRecipesResp = await fetch(`/api/recipes?table=recipes_custom&user_id=${userId}`);
-            const customRecipes = await customRecipesResp.json();
-
-            const defaultSnacksResp = await fetch('/api/snacks/');
-            const defaultSnacks = await defaultSnacksResp.json();
-
-            const filteredSnacks = defaultSnacks.filter((snack: Recipe) => !snack.cravings_kit);
-
-            const combinedRecipes: Recipe[] = [
-                ...defaultRecipes,
-                ...filteredSnacks.map((snack: any) => ({
-                    ...snack,
-                    isSnack: true
-                }))
-            ];
-
-            setRecipes(combinedRecipes);
-        } catch (error) {
-            handleError(error);
-        }
-    };
-
-    const fetchResponses = async (userId: string) => {
-        try {
-            const response = await fetch(`/api/responses?user_id=${userId}`);
-            const data = await response.json();
-            if (response.ok) {
-                if (data.length > 0) {
-                    const firstResponse = data[0];
-                    try {
-                        firstResponse.hidden = JSON.parse(firstResponse.hidden || '{}');
-                        firstResponse.calculated = JSON.parse(firstResponse.calculated || '{}');
-                        firstResponse.answers = JSON.parse(firstResponse.answers || '[]');
-                        firstResponse.questions = JSON.parse(firstResponse.questions || '[]');
-                        firstResponse.qna = JSON.parse(firstResponse.qna || '[]');
-                    } catch (error) {
-                        console.error('Error parsing response data:', error);
-                    }
-                    setResponses(firstResponse);
-                } else {
-                    console.log('No responses found for the given userId.');
-                    setResponses({});
-                }
-            } else {
-                throw new Error(data.error || 'Failed to fetch responses');
-            }
-        } catch (error) {
-            handleError(error);
-        }
-    };
-
-    const handleError = (error: unknown) => {
-        if (error instanceof Error) {
-            console.error('Failed to fetch data:', error.message);
-        } else {
-            console.error('An unknown error occurred:', error);
-        }
-    };
-
     const handleViewClick = (recipe: Recipe) => {
+        if (!recipe.title && !recipe.name) {
+            return;
+        }
         setSelectedRecipe(recipe);
         setModalOpen(true);
     };
@@ -235,11 +219,21 @@ function App() {
         const recipe = recipes.find(r => r.contentful_id === contentfulId);
         if (recipe) {
             handleRecipeChange(day, meal, recipe);
-            setShowDropdown({day: '', meal: ''});
+            setShowDropdown({ day: '', meal: '' });
         }
     };
 
-    const handleRecipeChange = (day: string, mealType: string, newRecipe: Recipe) => {
+    const handleSelectSnack = (contentfulId: string, day: string, meal: string) => {
+        const snack = snacks.find(s => s.contentful_id === contentfulId);
+        if (snack) {
+            handleRecipeChange(day, meal, snack);
+            setShowDropdown({ day: '', meal: '' });
+        }
+    };
+
+    //TODO: fix types
+    const handleRecipeChange = (day: string, mealType: string, newRecipe: Recipe | Snack) => {
+   //@ts-ignore
         setChanges(prevChanges => {
             const updatedDayChanges = {
                 ...prevChanges[day],
@@ -251,19 +245,20 @@ function App() {
                 [day]: updatedDayChanges
             };
 
+            //@ts-ignore
             calculateAverageDailyValues(mealPlan, updatedChanges);
 
             return updatedChanges;
         });
 
-        const newDayMeals = {...mealPlan[day], [mealType]: newRecipe};
-        const newTotals = calculateTotals(newDayMeals);
-
-        // Update totals separately if needed
-        // setTotals(prevTotals => ({
-        //   ...prevTotals,
-        //   [day]: newTotals
-        // }));
+        //@ts-ignore
+        setMealPlan(prevMealPlan => ({
+            ...prevMealPlan,
+            [day]: {
+                ...prevMealPlan[day],
+                [mealType]: newRecipe
+            }
+        }));
     };
 
     const handleClose = () => {
@@ -279,21 +274,22 @@ function App() {
     const handleDropdown = (day: string, meal: string) => {
         setShowDropdown(prev => {
             if (prev.day === day && prev.meal === meal) {
-                return {day: '', meal: ''};
+                return { day: '', meal: '' };
             } else {
-                return {day, meal};
+                return { day, meal };
             }
         });
     };
 
     const handleEditClick = (recipe: Recipe, day: string, mealType: string) => {
-        setEditRecipe({...recipe, day, mealType});
+        handleUndo(day, mealType); // Revert to the original meal before editing
+        setEditRecipe({ ...recipe, day, mealType });
         setModalOpen(true);
     };
 
     const handleUndo = (day: string, mealType: string) => {
         setChanges(prevChanges => {
-            const updatedChanges = {...prevChanges};
+            const updatedChanges = { ...prevChanges };
             if (updatedChanges[day] && updatedChanges[day][mealType]) {
                 delete updatedChanges[day][mealType];
                 if (Object.keys(updatedChanges[day]).length === 0) {
@@ -301,13 +297,18 @@ function App() {
                 }
             }
 
-            const newChanges = {...updatedChanges};
+            calculateAverageDailyValues(mealPlan, updatedChanges);
 
-            calculateAverageDailyValues(mealPlan, newChanges);
-
-            return newChanges;
+            return updatedChanges;
         });
-        setShowDropdown({day: '', meal: ''});
+
+        setMealPlan(prevMealPlan => ({
+            ...prevMealPlan,
+            [day]: {
+                ...prevMealPlan[day],
+                [mealType]: originalMealPlan[day][mealType] // Revert to original meal plan
+            }
+        }));
     };
 
     const handleEditSubmit = async (e: React.FormEvent, recipe: Recipe) => {
@@ -320,21 +321,24 @@ function App() {
             name: editForm.name,
             calories: editForm.calories,
             protein: editForm.protein,
+            url: editForm.url,
             contentful_id: isNewRecipe ? 'CUSTOM_RECIPE' : recipe.contentful_id
         };
 
         try {
-            const response = await fetch('/api/recipes', {
+            console.log('Saving recipe:', patientUserId);
+
+            const response = await fetch(`/api/recipes`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
+                    //TODO: support GB
+                    country_code: 'AU',
                     userId: patientUserId,
                     name: updatedRecipe.name,
                     calories: updatedRecipe.calories,
                     protein: updatedRecipe.protein,
-                    contentful_id: updatedRecipe.contentful_id
+                    contentful_id: 'CUSTOM_RECIPE',
+                    url: updatedRecipe.url
                 })
             });
 
@@ -344,29 +348,22 @@ function App() {
                 handleRecipeChange(recipe.day as string, recipe.mealType as string, updatedRecipe);
                 setModalOpen(false);
                 setEditRecipe(null);
-                setEditForm({name: "", calories: 0, protein: 0});
-                // await fetchRecipes(patientUserId); // Fetch the list of recipes again to include the newly created recipe
-
-            } else {
-                throw new Error(data.error || 'Failed to save the recipe');
+                setEditForm({ name: "", calories: 0, protein: 0 });
+            }
+            else {
+                console.error('Failed to save the recipe');
             }
         } catch (error) {
-            // @ts-ignore
             console.error('Error saving recipe:', error);
         }
     };
 
     const getMealDisplayData = (day: string, mealType: string) => {
-        console.log('mealPlan:', mealPlan);
-        console.log('day:', day);
-        console.log('mealType:', mealType);
-        console.log('mealPlan[day][mealType]', mealPlan[day][mealType]);
-
         return changes[day] && changes[day][mealType] ? changes[day][mealType] : mealPlan[day][mealType];
     };
 
     const calculateTotals = (meals: { [key: string]: Recipe }): { calories: number; protein: number } => {
-        const totals = {calories: 0, protein: 0};
+        const totals = { calories: 0, protein: 0 };
         ['breakfast', 'lunch', 'dinner', 'snack'].forEach(mealType => {
             if (meals[mealType]) {
                 totals.calories += meals[mealType].calories || 0;
@@ -383,7 +380,7 @@ function App() {
         let daysCount = 0;
 
         days.forEach(day => {
-            const mealsForDay = changes[day] ? {...mealPlan[day], ...changes[day]} : mealPlan[day];
+            const mealsForDay = changes[day] ? { ...mealPlan[day], ...changes[day] } : mealPlan[day];
             const totals = calculateTotals(mealsForDay);
             totalCalories += totals.calories;
             totalProtein += totals.protein;
@@ -397,7 +394,7 @@ function App() {
     };
 
     const validateMealPlan = () => {
-        const combinedPlan = {...mealPlan};
+        const combinedPlan = { ...mealPlan };
 
         Object.keys(changes).forEach(day => {
             combinedPlan[day] = {
@@ -406,32 +403,36 @@ function App() {
             };
         });
 
-        // Exclude the 'totals' key
-        delete combinedPlan['totals'];
-
-        const duplicateDays: string[] = [];
+        const requiredMealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
         const invalidDays = [];
+        const duplicateDays = [];
 
         for (const day in combinedPlan) {
-            const daySet = new Set();
-            const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
-            let isValidDay = true;
+            if (day === 'Totals') continue;
 
-            mealTypes.forEach(mealType => {
-                const meal = combinedPlan[day][mealType];
+            const mealsForDay = combinedPlan[day];
+            const mealTypesSet = new Set(requiredMealTypes);
+
+            // Check for duplicates
+            const contentfulIds = new Set();
+            for (const mealType in mealsForDay) {
+                const meal = mealsForDay[mealType];
                 if (meal && meal.contentful_id) {
-                    const key = meal.contentful_id;
-                    if (daySet.has(key)) {
+                    if (contentfulIds.has(meal.contentful_id)) {
                         duplicateDays.push(day);
+                        break;
+                    } else {
+                        contentfulIds.add(meal.contentful_id);
                     }
-                    daySet.add(key);
-                } else {
-                    isValidDay = false;
                 }
-            });
+            }
 
-            if (!isValidDay) {
-                invalidDays.push(day);
+            // Check for missing meal types
+            for (const mealType of requiredMealTypes) {
+                if (!mealsForDay[mealType]) {
+                    invalidDays.push(day);
+                    break;
+                }
             }
         }
 
@@ -443,8 +444,14 @@ function App() {
         };
     };
 
+
     const saveAndPublishChanges = async () => {
-        const {hasDuplicates, hasInvalidDays, duplicateDays, invalidDays} = validateMealPlan();
+        if (!changes || Object.keys(changes).length === 0) {
+            alert('No changes to publish.');
+            return;
+        }
+
+        const { hasDuplicates, hasInvalidDays, duplicateDays, invalidDays } = validateMealPlan();
 
         if (hasDuplicates) {
             alert(`Duplicate meals detected on the following days: ${duplicateDays.join(', ')}. Please resolve the duplicates before saving.`);
@@ -457,14 +464,15 @@ function App() {
         }
 
         setIsSaving(true);
+
         const updatedPlan = Object.keys(changes).reduce((acc, day) => {
-            acc[day] = {...mealPlan[day], ...changes[day]};
+            acc[day] = { ...mealPlan[day], ...changes[day] };
             return acc;
-        }, {...mealPlan});
+        }, { ...mealPlan });
 
         delete updatedPlan['totals'];
 
-        const response = await fetch('/api/update_meal_plan', {
+        const response = await fetch('/api/meal-plan', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -483,7 +491,6 @@ function App() {
             setMealPlan(updatedPlan);
             setChanges({});
             calculateAverageDailyValues(updatedPlan, {});
-
         } else {
             console.error('Failed to update meal plan:', data.error);
         }
@@ -499,13 +506,13 @@ function App() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({userId: patientUserId})
+                body: JSON.stringify({ userId: patientUserId })
             });
 
             if (response.ok) {
                 alert('Meal plan has been reset. The page will now refresh.');
                 setResetConfirmOpen(false);
-                window.location.reload(); // Refresh the page
+                window.location.reload();
             } else {
                 const data = await response.json();
                 alert(`Failed to reset meal plan: ${data.error}`);
@@ -549,14 +556,11 @@ function App() {
         return false;
     };
 
-    console.log("Rendering with userData:", userData); // Debug statement
-
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center text-black">
             <h1 className="text-4xl font-bold text-blue-600 mb-4">Welcome, health coach 🫡</h1>
             <div className="container mx-auto px-4 py-4">
-                <div
-                    className="bg-white shadow mx-auto rounded-lg p-6 mb-6 w-full max-w-screen-xl grid grid-cols-1 gap-6">
+                <div className="bg-white shadow mx-auto rounded-lg p-6 mb-6 w-full max-w-screen-xl grid grid-cols-1 gap-6">
                     <div className="flex flex-col space-y-4">
                         {userData ? (
                             <div className="bg-white shadow rounded-lg p-4 mb-4 w-full">
@@ -577,11 +581,12 @@ function App() {
                         ) : (
                             <p>No user data available.</p>
                         )}
-                        <div className="bg-white shadow rounded-lg p-4 mb-4 w-full">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-4">Response Details</h2>
-                            <ResponseSummary responses={responses}/>
-                        </div>
-
+                        {responses && (
+                            <div className="bg-white shadow rounded-lg p-4 mb-4 w-full">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-4">Response Details</h2>
+                                <ResponseSummary responses={responses} />
+                            </div>
+                        )}
                         {userData && (
                             <div className="bg-white shadow rounded-lg p-4 mb-4 w-full">
                                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Daily avg. in plan</h2>
@@ -600,38 +605,27 @@ function App() {
                     {Object.keys(mealPlan).map(day => {
                         if (day === 'Totals') return null;
 
-                        const mealsForDay = changes[day] ? {...mealPlan[day], ...changes[day]} : mealPlan[day];
+                        const mealsForDay = changes[day] ? { ...mealPlan[day], ...changes[day] } : mealPlan[day];
                         const totals = calculateTotals(mealsForDay);
-                        const isDuplicateDay = duplicateDays.includes(day);
 
                         return day !== 'Totals' && (
-                            <div key={day}
-                                 className={`bg-white shadow rounded-lg p-4 w-96 ${isDuplicateDay ? 'bg-red-100' : ''}`}>
+                            <div key={day} className={`bg-white shadow rounded-lg p-4 w-96`}>
                                 <h2 className="text-xl font-bold text-gray-800 mb-3 text-center">{day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()}</h2>
-
                                 {['breakfast', 'lunch', 'dinner', 'snack'].map(mealType => {
-
                                     let mealData = getMealDisplayData(day, mealType);
-
                                     const isChanged = changes[day] && changes[day][mealType];
 
                                     return mealData && (
-                                        <div key={`${day}-${mealType}`}
-                                             className={`p-2 border-b last:border-b-0 ${isChanged ? 'bg-yellow-100' : ''} ${(!mealData.name && !mealData.title) ? 'bg-red-100' : ''}`}>
-                                            <h3 className="text-lg font-semibold text-gray-900 truncate cursor-pointer"
-                                                onClick={() => handleViewClick(mealData)}>
-                                                {/*@ts-ignore*/}
-                                                {mealType !== 'snack' ? (mealData?.title || 'Please add manually.') : mealData?.title}
-                                                {mealType === 'snack' ? (mealData?.name || 'Please add manually.') : mealData?.name}
+                                        <div key={`${day}-${mealType}`} className={`p-2 border-b last:border-b-0 ${isChanged ? 'bg-yellow-100' : ''} ${(!mealData.name && !mealData.title) ? 'bg-red-100' : ''}`}>
+                                            <h3 className="text-lg font-semibold text-gray-900 truncate cursor-pointer" onClick={() => handleViewClick(mealData)}>
+                                                {mealData.title || mealData.name || 'Please add manually.'}
                                             </h3>
                                             <div className="flex justify-between items-center">
-                                                {/*@ts-ignore*/}
                                                 {mealData && (mealData.name || mealData.title) && (
                                                     <span className="text-sm text-gray-500">
                                                         Cal: {mealData.calories} | Pro: {mealData.protein}g
                                                     </span>
                                                 )}
-                                                {/*@ts-ignore*/}
                                                 {!mealData.name && !mealData.title && (
                                                     <span className="text-sm text-gray-500">
                                                         {mealData.notes ? `${mealData.notes}` : ""}
@@ -640,29 +634,22 @@ function App() {
                                                 <div>
                                                     <div className="flex space-x-2">
                                                         {isChanged ? (
-                                                            <button
-                                                                className="p-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 focus:outline-none"
-                                                                onClick={() => handleUndo(day, mealType)}>
-                                                                <FontAwesomeIcon icon={faPencilAlt}/>
+                                                            <button className="p-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 focus:outline-none" onClick={() => handleUndo(day, mealType)}>
+                                                                <FontAwesomeIcon icon={faPencilAlt} />
                                                             </button>
                                                         ) : (
-                                                            <button
-                                                                className="p-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 focus:outline-none"
-                                                                onClick={() => handleDropdown(day, mealType)}>
-                                                                <FontAwesomeIcon icon={faPencilAlt}/>
+                                                            <button className="p-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 focus:outline-none" onClick={() => handleDropdown(day, mealType)}>
+                                                                <FontAwesomeIcon icon={faPencilAlt} />
                                                             </button>
                                                         )}
                                                         {mealType !== 'snack' ? (
-                                                            <button
-                                                                className="p-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 focus:outline-none"
-                                                                onClick={() => handleEditClick(mealData, day, mealType)}>
-                                                                <FontAwesomeIcon icon={faPlus}/>
+                                                            <button className="p-2 text-gray-600 bg-gray-200 rounded hover:bg-gray-300 focus:outline-none" onClick={() => handleEditClick(mealData, day, mealType)}>
+                                                                <FontAwesomeIcon icon={faPlus} />
                                                             </button>
                                                         ) : null}
                                                     </div>
                                                     {showDropdown.day === day && showDropdown.meal === mealType && (
-                                                        <div ref={dropdownRef}
-                                                             className="absolute mt-2 w-full rounded-md bg-white shadow-lg z-10">
+                                                        <div ref={dropdownRef} className="absolute mt-2 w-full rounded-md bg-white shadow-lg z-10">
                                                             <input
                                                                 type="text"
                                                                 placeholder="Search recipes..."
@@ -670,27 +657,37 @@ function App() {
                                                                 onChange={(e) => setSearchQuery(e.target.value)}
                                                                 className="p-2 w-full"
                                                             />
-                                                            {recipes
-                                                                .filter(recipe => {
-                                                                    if (mealType === 'snack') {
-                                                                        return recipe.isSnack && recipe.name.toLowerCase().includes(searchQuery.toLowerCase());
-                                                                    }
-                                                                    return (!recipe.isSnack && recipe.name.toLowerCase().includes(searchQuery.toLowerCase())) || (recipe.isSnack === undefined && recipe.name.toLowerCase().includes(searchQuery.toLowerCase()));
-                                                                })
-                                                                .map(recipe => (
-                                                                    <div key={recipe.contentful_id} onClick={() => {
-                                                                        handleSelectRecipe(recipe.contentful_id, day, mealType);
-                                                                        setSearchQuery("");
-                                                                        setShowDropdown({day: '', meal: ''});
-                                                                    }} className="p-2 hover:bg-gray-100 cursor-pointer">
-                                                                        <span
-                                                                            className="text-lg font-medium">{recipe.name}</span>
-                                                                        <span>
-                                                                            <small
-                                                                                className="text-gray-600"> {recipe.calories}cal, {recipe.protein}g</small>
-                                                                        </span>
-                                                                    </div>
-                                                                ))}
+                                                            {mealType === 'snack' ? (
+                                                                snacks.length > 0 && snacks
+                                                                    .filter(snack => snack.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                                                                    .map(snack => (
+                                                                        <div key={snack.contentful_id} onClick={() => {
+                                                                            handleSelectSnack(snack.contentful_id, day, mealType);
+                                                                            setSearchQuery("");
+                                                                            setShowDropdown({ day: '', meal: '' });
+                                                                        }} className="p-2 hover:bg-gray-100 cursor-pointer">
+                                                                            <span className="text-lg font-medium">{snack.name}</span>
+                                                                            <span>
+                                                                                <small className="text-gray-600"> {snack.calories}cal, {snack.protein}g</small>
+                                                                            </span>
+                                                                        </div>
+                                                                    ))
+                                                            ) : (
+                                                                recipes.length > 0 && recipes
+                                                                    .filter(recipe => recipe.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                                                                    .map(recipe => (
+                                                                        <div key={recipe.contentful_id} onClick={() => {
+                                                                            handleSelectRecipe(recipe.contentful_id, day, mealType);
+                                                                            setSearchQuery("");
+                                                                            setShowDropdown({ day: '', meal: '' });
+                                                                        }} className="p-2 hover:bg-gray-100 cursor-pointer">
+                                                                            <span className="text-lg font-medium">{recipe.name}</span>
+                                                                            <span>
+                                                                                <small className="text-gray-600"> {recipe.calories}cal, {recipe.protein}g</small>
+                                                                            </span>
+                                                                        </div>
+                                                                    ))
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
@@ -723,36 +720,23 @@ function App() {
                     })}
                 </div>
             </div>
-            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-1.5"
-                    onClick={saveAndPublishChanges} disabled={isSaving}>
+            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-1.5" onClick={saveAndPublishChanges} disabled={isSaving}>
                 {isSaving ? 'Saving... please wait' : 'Save and Publish'}
             </button>
 
             {resetConfirmOpen && (
                 <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75">
                     <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-                        {!isResetting ? <h2 className="text-2xl font-bold mb-4">Confirm Reset</h2> :
-                            <h2 className="text-2xl font-bold mb-4">Resetting...</h2>
-                        }
+                        {!isResetting ? <h2 className="text-2xl font-bold mb-4">Confirm Reset</h2> : <h2 className="text-2xl font-bold mb-4">Resetting...</h2>}
                         {!isResetting ?
-                            <p className="mb-4">Are you sure you want to reset the meal plan? This action will overwrite
-                                the existing plan. The process can take a few minutes (you can navigate away and return
-                                later).</p>
-                            : <p className="mb-4">Resetting the meal plan... This will take a few minutes. Feel free to
-                                navigate away and come back later.</p>
+                            <p className="mb-4">Are you sure you want to reset the meal plan? This action will overwrite the existing plan. The process can take a few minutes (you can navigate away and return later).</p>
+                            : <p className="mb-4">Resetting the meal plan... This will take a few minutes. Feel free to navigate away and come back later.</p>
                         }
                         <div className="flex justify-end space-x-4">
-                            {!isResetting && <button
-                                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
-                                onClick={() => setResetConfirmOpen(false)}
-                            >
+                            {!isResetting && <button className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded" onClick={() => setResetConfirmOpen(false)}>
                                 Cancel
                             </button>}
-                            <button
-                                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                                onClick={handleResetMealPlan}
-                                disabled={isResetting}
-                            >
+                            <button className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded" onClick={handleResetMealPlan} disabled={isResetting}>
                                 {isResetting ? 'Resetting...' : 'Confirm'}
                             </button>
                         </div>
@@ -768,10 +752,9 @@ function App() {
                 onClose={handleClose}
                 onSubmit={handleEditSubmit}
             />
-            <RecipeModal isOpen={modalOpen && !editRecipe} recipe={selectedRecipe} onClose={handleClose}/>
+            <RecipeModal isOpen={modalOpen && !editRecipe} recipe={selectedRecipe} onClose={handleClose} />
         </div>
     );
 }
 
 export default App;
-

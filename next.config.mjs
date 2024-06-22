@@ -7,6 +7,7 @@ const nextConfig = {
         GOOGLE_CLIENT_SECRET: process.env.AUTH_GOOGLE_SECRET,
         CONTENTFUL_SPACE_ID: process.env.CONTENTFUL_SPACE_ID,
         CONTENTFUL_ACCESS_TOKEN: process.env.CONTENTFUL_ACCESS_TOKEN,
+        FIREBASE_SERVICE_ACCOUNT_KEY: process.env.FIREBASE_SERVICE_ACCOUNT_KEY,
     },
     images: {
         remotePatterns: [

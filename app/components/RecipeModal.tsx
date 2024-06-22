@@ -1,43 +1,86 @@
-// @ts-nocheck
 
 import React from 'react';
 
-const RecipeModal = ({ isOpen, recipe, onClose }) => {
+interface Recipe {
+    title?: string;
+    notes: string;
+    cravings_kit?: boolean;
+    mealType?: string;
+    day?: string;
+    contentful_id: string;
+    name: string;
+    calories: number;
+    protein: number;
+    isSnack?: boolean;
+}
+
+interface IngredientDetail {
+    fields: {
+        title: string;
+        quantity: string;
+    };
+}
+
+interface Recipe {
+    title?: string;
+    notes: string;
+    cravings_kit?: boolean;
+    mealType?: string;
+    day?: string;
+    contentful_id: string;
+    name: string;
+    calories: number;
+    protein: number;
+    isSnack?: boolean;
+    ingredientsDetailList?: IngredientDetail[];
+    serves?: number;
+    dietaryTags?: string[];
+    dietaryRestrictions?: string[];
+    proteinSource?: string[];
+    url?: string;
+
+}
+
+interface RecipeModalProps {
+    isOpen: boolean;
+    recipe: Recipe | null;
+    onClose: () => void;
+}
+
+const RecipeModal = ({ isOpen, recipe, onClose }:RecipeModalProps) => {
     if (!isOpen || !recipe) return null;
 
-    let ingredients = [];
-
-    try {
-        ingredients = JSON.parse(recipe.ingredients);
-    } catch (e) {
-        console.error("Error parsing ingredients", e);
-    }
 
     return (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center">
             <div className="bg-white p-5 rounded-lg shadow-lg w-1/3">
-                <h2 className="text-2xl font-bold mb-3">{recipe.name}</h2>
+                <h2 className="text-2xl font-bold mb-3">{recipe.title}</h2>
                 <p className="text-base mb-3">{recipe.notes}</p>
                 <div className="mb-4">
+
                     <p className="text-sm"><strong>Calories:</strong> {recipe.calories || "N/A"}</p>
                     <p className="text-sm"><strong>Protein:</strong> {recipe.protein ? `${recipe.protein}g` : "N/A"}</p>
                     <p className="text-sm"><strong>Serves:</strong> {recipe.serves || "N/A"}</p>
                     <p className="text-sm"><strong>Dietary
-                        Preferences:</strong> {recipe.dietary_preferences ? JSON.parse(recipe.dietary_preferences).join(', ') : "N/A"}
+                        Preferences:</strong> {recipe.dietaryTags ? JSON.stringify(recipe.dietaryTags) : "N/A"}
                     </p>
                     <p className="text-sm"><strong>Dietary
-                        Restrictions:</strong> {recipe.dietary_restrictions ? JSON.parse(recipe.dietary_restrictions).join(', ') : "N/A"}
+                        Restrictions:</strong> {recipe.dietaryRestrictions ? JSON.stringify(recipe.dietaryRestrictions) : "N/A"}
                     </p>
                     <p className="text-sm"><strong>Protein
-                        Source:</strong> {recipe.protein_source ? JSON.parse(recipe.protein_source).join(', ') : "N/A"}
+                        Source:</strong> {recipe.proteinSource? JSON.stringify(recipe.proteinSource) : "N/A"}
                     </p>
                 </div>
-                {recipe.ingredients ? (
+                {recipe.ingredientsDetailList ? (
                     <div className="mb-4">
                         <h3 className="text-lg font-semibold mb-2">Ingredients</h3>
                         <ul className="list-disc pl-5">
-                            {ingredients.map((item, index) => (
-                                <li key={index}>{item.ingredient + ": " + item.quantity}</li>
+
+                            {recipe.ingredientsDetailList.map((item : IngredientDetail, index: number) => (
+                                <>
+                                    <li key={index}>{item.fields.title + ": " + item.fields.quantity}</li>
+                                </>
+
                             ))}
                         </ul>
                     </div>
