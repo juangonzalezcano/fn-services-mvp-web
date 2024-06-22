@@ -5,23 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ced22fdc-5248-481b-b0d2-87556d23dd15" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/app/api/recipes/route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/api/snacks/route.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/firebase/firebaseAdmin.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/api/meal-plan/route.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/api/meal-plan/route.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/App.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/EditRecipeModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/EditRecipeModal.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/RecipeModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/RecipeModal.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/components/ResponseSummary.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/components/ResponseSummary.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/firebase/clientApp.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/firebase/firebase.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/firebase/serverApp.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/firebase/storage.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/next.config.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/next.config.mjs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -136,10 +121,10 @@
     <recent_temporary>
       <list>
         <item itemvalue="npm.dev" />
+        <item itemvalue="npm.deploy" />
         <item itemvalue="npm.build" />
         <item itemvalue="npm.build-service-worker" />
         <item itemvalue="npm.pre-deploy" />
-        <item itemvalue="npm.deploy" />
       </list>
     </recent_temporary>
   </component>
@@ -162,7 +147,7 @@
       <workItem from="1718893930477" duration="10987000" />
       <workItem from="1718918844109" duration="31008000" />
       <workItem from="1718964445309" duration="6096000" />
-      <workItem from="1718971891921" duration="51406000" />
+      <workItem from="1718971891921" duration="53807000" />
     </task>
     <servers />
   </component>
@@ -186,13 +171,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/app/api/meal-plan/route.ts</url>
-          <line>253</line>
+          <line>259</line>
           <properties lambdaOrdinal="-1" />
           <option name="timeStamp" value="75" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/app/api/meal-plan/route.ts</url>
-          <line>189</line>
+          <line>186</line>
           <properties lambdaOrdinal="-1" />
           <option name="timeStamp" value="81" />
         </line-breakpoint>

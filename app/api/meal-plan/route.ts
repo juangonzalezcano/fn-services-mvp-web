@@ -48,13 +48,11 @@ interface Snack {
     protein: number;
 }
 
-
 interface Changes {
     [day: string]: {
         [mealType: string]: Recipe;
     };
 }
-
 
 const contentfulClient = createClient({
     space: process.env.CONTENTFUL_SPACE_ID || '1p96mcpzbbp4',
@@ -177,7 +175,6 @@ export const GET = auth(async function GET(req) {
     }
 });
 
-
 export const POST = auth(async function POST(req) {
     if (req.auth) {
         try {
@@ -244,11 +241,20 @@ const updatePlan = async (changes: Changes, userId: string) => {
             batch.set(planDocRef, { [dayKey]: transformedChanges[dayKey] }, { merge: true });
         }
 
-        // Update the top-level fields
-        batch.set(planDocRef, {
+        // Prepare the top-level updates
+        const topLevelUpdates: Record<string, any> = {
             plan_status: 'coach_saved',
             updated_at: new Date().toISOString(),
-        }, { merge: true });
+        };
+
+        // Clear the plan_${day}_webflow_field for the changed days
+        for (const day in changes) {
+            const webflowFieldKey = `plan_${day.toLowerCase()}_webflow_field`;
+            topLevelUpdates[webflowFieldKey] = [];
+        }
+
+        // Update the top-level fields
+        batch.set(planDocRef, topLevelUpdates, { merge: true });
 
         // Commit the batch
         await batch.commit();
